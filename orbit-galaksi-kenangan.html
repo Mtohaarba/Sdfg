@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbit — Galaksi Kenangan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  :root{
+    --bg:#070a13; --bg2:#0c1120; --panel:rgba(13,18,33,.55);
+    --ink:#e9ecf6; --mut:#9aa3bf; --dim:#5d6580;
+    --line:rgba(233,236,246,.13); --line2:rgba(233,236,246,.07);
+    --acc:#ecc87f;
+    --disp:'Cormorant Garamond',serif; --ui:'Space Grotesk',sans-serif;
+    color-scheme:dark;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5;overflow-x:hidden}
+  ::selection{background:var(--acc);color:#141018}
+  ::-webkit-scrollbar{width:10px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:#1c2338;border-radius:6px;border:2px solid var(--bg)}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  img,video{display:block}
+  :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+  [hidden]{display:none!important}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  /* ══════════ langit: kanvas bintang + kabut ══════════ */
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .nebula{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
+  .n1{width:52vw;height:52vw;left:-14vw;top:-18vw;background:rgba(64,78,150,.14)}
+  .n2{width:46vw;height:46vw;right:-12vw;bottom:-16vw;background:rgba(190,140,80,.08)}
+  body::after{
+    content:'';position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(130% 100% at 50% 0%, transparent 58%, rgba(2,3,9,.55));
+  }
+  header,main,footer{position:relative;z-index:2}
+
+  /* ══════════ layar pemilihan sinyal (musik) ══════════ */
+  #intro{
+    position:fixed;inset:0;z-index:1000;background:rgba(6,8,16,.88);backdrop-filter:blur(5px);
+    display:flex;align-items:center;transition:opacity 1s ease,visibility 1s;
+  }
+  #intro.hide{opacity:0;visibility:hidden}
+  .intro-inner{
+    position:relative;z-index:2;width:100%;display:grid;grid-template-columns:1fr 1.3fr;
+    gap:7vw;align-items:center;padding:6vh 8vw;
+  }
+  .intro-left{display:flex;flex-direction:column;align-items:center;gap:34px}
+  .planet-stage{position:relative;width:min(290px,58vw);aspect-ratio:1;animation:hover 6s ease-in-out infinite}
+  @keyframes hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  .planet{
+    position:absolute;inset:19%;border-radius:50%;
+    background:radial-gradient(circle at 33% 28%, #35426e 0%, #1b2445 46%, #0b1126 80%);
+    box-shadow:inset -20px -24px 55px rgba(0,0,0,.6), 0 0 80px rgba(120,140,255,.14);
+  }
+  .ring{
+    position:absolute;left:50%;top:50%;border-radius:50%;
+    transform:translate(-50%,-50%) rotateX(72deg) rotate(-16deg);
+    border:1.5px solid rgba(236,200,127,.4);
+    box-shadow:0 0 18px rgba(236,200,127,.12), inset 0 0 18px rgba(236,200,127,.08);
+  }
+  .r1{width:168%;height:168%}
+  .r2{width:140%;height:140%;border-color:rgba(233,236,246,.16)}
+  .moon-orbit{position:absolute;inset:4%;animation:spin 15s linear infinite}
+  .moon{
+    position:absolute;top:0;left:50%;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;
+    background:#e9ecf6;box-shadow:0 0 10px rgba(233,236,246,.9);
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .planet-cap{font-size:9px;letter-spacing:.42em;text-transform:uppercase;color:var(--dim);text-align:center}
+  .intro-note{font-family:var(--disp);font-style:italic;font-size:16.5px;color:var(--dim);text-align:center;max-width:30ch}
+  .intro-eyebrow{font-size:10px;letter-spacing:.4em;color:var(--acc);margin-bottom:18px}
+  #intro h2{font-family:var(--disp);font-weight:500;font-size:clamp(1.9rem,3.6vw,3rem);line-height:1.12;margin-bottom:30px;max-width:17ch}
+  #intro h2 em{font-style:italic;color:var(--acc)}
+  .track{
+    display:flex;align-items:center;gap:16px;padding:15px 10px;cursor:pointer;
+    border-bottom:1px solid var(--line2);transition:padding .3s,background .3s;
+  }
+  .track:hover{padding-left:22px;background:rgba(233,236,246,.04)}
+  .track .no{font-size:10.5px;letter-spacing:.1em;color:var(--dim);width:24px;flex-shrink:0;display:grid;place-items:center}
+  .track .no svg{width:16px;height:16px}
+  .track .twrap{flex:1;min-width:0}
+  .track .t{display:block;font-family:var(--disp);font-style:italic;font-size:22px;line-height:1.15;transition:color .3s}
+  .track:hover .t{color:var(--acc)}
+  .track .d{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+  .track .meta{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+  .tdel{opacity:.4;padding:6px;transition:.3s;color:var(--mut)}
+  .tdel:hover{opacity:1;color:#d8756a}
+  .tdel svg{width:14px;height:14px}
+  .track.upload .t{color:var(--mut)}
+  .ghost-link{
+    margin-top:28px;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;
+    color:var(--dim);border-bottom:1px solid currentColor;padding-bottom:3px;transition:.3s;
+  }
+  .ghost-link:hover{color:var(--ink)}
+  #introClose{position:absolute;top:26px;right:26px;z-index:5}
+  @media(max-width:880px){
+    .intro-inner{grid-template-columns:1fr;gap:44px;padding:7vh 8vw;overflow-y:auto;max-height:100vh}
+    .intro-left{order:2}
+  }
+
+  /* ══════════ tombol & label ══════════ */
+  .icon-btn{
+    width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+    border:1px solid var(--line);color:var(--ink);background:rgba(12,17,32,.6);transition:.3s;
+  }
+  .icon-btn:hover{border-color:var(--acc);color:var(--acc)}
+  .icon-btn svg{width:17px;height:17px}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    padding:13px 26px;border:1px solid var(--line);color:var(--ink);transition:.3s;
+  }
+  .btn:hover{border-color:var(--acc);color:var(--acc)}
+  .btn.solid{background:var(--acc);color:#171106;border-color:var(--acc)}
+  .btn.solid:hover{background:#f6dca2;color:#171106}
+  .btn svg{width:14px;height:14px}
+  .btn.wide{width:100%;justify-content:center;margin-top:28px}
+  .link-quiet{
+    font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);
+    border-bottom:1px solid var(--line);padding-bottom:3px;transition:.3s;text-decoration:none;
+  }
+  .link-quiet:hover{color:var(--acc);border-color:var(--acc)}
+  .eyebrow{font-size:10px;letter-spacing:.38em;text-transform:uppercase;color:var(--acc)}
+  .chip{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--mut);border:1px solid var(--line);padding:8px 14px;display:inline-block}
+
+  /* sudut bidik (targeting brackets) */
+  .cornered{position:relative}
+  .cornered::before,.cornered::after{content:'';position:absolute;width:15px;height:15px;pointer-events:none;opacity:0;transition:opacity .45s}
+  .cornered::before{top:-1px;left:-1px;border-top:1.5px solid var(--acc);border-left:1.5px solid var(--acc)}
+  .cornered::after{bottom:-1px;right:-1px;border-bottom:1.5px solid var(--acc);border-right:1.5px solid var(--acc)}
+  .always-brackets::before,.always-brackets::after{opacity:.65}
+
+  /* ══════════ header ══════════ */
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 7vw;position:sticky;top:0;z-index:100;
+    background:rgba(7,10,19,.75);backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line2);
+  }
+  .brand{font-family:var(--disp);font-style:italic;font-size:24px;letter-spacing:.01em}
+  .brand i{color:var(--acc);font-style:normal}
+  .hgroup{display:flex;gap:30px;align-items:center}
+  nav{display:flex;gap:30px}
+  nav a{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--mut);text-decoration:none;transition:color .3s}
+  nav a:hover{color:var(--acc)}
+  @media(max-width:700px){nav{display:none}}
+
+  /* animasi */
+  .fade-up{opacity:0;transform:translateY(28px);transition:opacity 1s ease,transform 1s cubic-bezier(.22,1,.36,1)}
+  body.arrived .fade-up{opacity:1;transform:none}
+  body.arrived .fade-up[data-d="1"]{transition-delay:.12s}
+  body.arrived .fade-up[data-d="2"]{transition-delay:.24s}
+  body.arrived .fade-up[data-d="3"]{transition-delay:.36s}
+  body.arrived .fade-up[data-d="4"]{transition-delay:.5s}
+  .rv{opacity:0;transform:translateY(34px);transition:opacity .9s ease,transform .9s cubic-bezier(.22,1,.36,1)}
+  .rv.in{opacity:1;transform:none}
+
+  @keyframes drift{
+    0%,100%{transform:rotate(var(--rot,0deg)) translateY(0)}
+    50%{transform:rotate(var(--rot,0deg)) translateY(-9px)}
+  }
+
+  /* ══════════ hero ══════════ */
+  #hero{
+    display:grid;grid-template-columns:1.05fr .95fr;gap:6vw;align-items:center;
+    min-height:82vh;padding:40px 7vw 70px;position:relative;
+  }
+  h1{font-family:var(--disp);font-weight:500;font-size:clamp(2.8rem,6.2vw,5.2rem);line-height:1.06;letter-spacing:-.01em}
+  h1 em{font-style:italic;color:var(--acc)}
+  #hero .eyebrow{display:flex;align-items:center;gap:18px;margin-bottom:28px}
+  #hero .eyebrow::after{content:'';height:1px;width:64px;background:var(--acc);opacity:.5}
+  .hero-sub{margin-top:26px;font-family:var(--disp);font-weight:400;font-size:19px;line-height:1.62;color:var(--mut);max-width:46ch}
+  .hero-meta{margin-top:32px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .hero-stats{font-family:var(--disp);font-style:italic;font-size:17px;color:var(--dim)}
+  .hero-cta{margin-top:36px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .scroll-cue{
+    position:absolute;bottom:30px;left:7vw;display:flex;align-items:center;gap:10px;
+    font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim);
+    text-decoration:none;animation:bob 2.4s ease-in-out infinite;
+  }
+  .scroll-cue svg{width:15px;height:15px}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+
+  .feat-slot{animation:drift 10s ease-in-out infinite}
+  .feat{
+    background:var(--panel);border:1px solid var(--line);padding:11px 11px 14px;
+    backdrop-filter:blur(4px);cursor:pointer;transition:border-color .4s,box-shadow .4s;
+  }
+  .feat:hover{border-color:rgba(236,200,127,.4);box-shadow:0 0 40px rgba(236,200,127,.07)}
+  .fph{overflow:hidden;background:#05070d}
+  .fph img,.fph video{width:100%;max-height:430px;object-fit:cover;filter:brightness(.85);transition:filter .6s,transform .8s cubic-bezier(.22,1,.36,1)}
+  .feat:hover .fph img,.feat:hover .fph video{filter:brightness(1);transform:scale(1.02)}
+  .feat figcaption{display:flex;align-items:baseline;gap:14px;padding:14px 4px 2px;flex-wrap:wrap}
+  .ftag{font-size:9px;letter-spacing:.3em;color:var(--acc);display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .ftag svg{width:12px;height:12px}
+  .fcap{flex:1;font-family:var(--disp);font-style:italic;font-size:19px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fdate{font-size:9px;letter-spacing:.24em;color:var(--dim);white-space:nowrap}
+  .feat-empty{border:1.5px dashed var(--line);padding:70px 30px;text-align:center}
+  .feat-empty svg{width:32px;height:32px;color:var(--dim);margin-bottom:16px}
+  .feat-empty p{font-family:var(--disp);font-style:italic;font-size:22px;color:var(--mut);margin-bottom:24px}
+  @media(max-width:920px){
+    #hero{grid-template-columns:1fr;min-height:0;padding-top:60px}
+    .scroll-cue{display:none}
+  }
+
+  /* ══════════ section umum ══════════ */
+  .sec-head{display:flex;align-items:flex-end;gap:30px;margin-bottom:46px}
+  .sec-head h2{font-family:var(--disp);font-weight:500;font-size:clamp(1.9rem,4vw,3rem);line-height:1.05;margin-top:10px}
+  .sec-head h2 em{font-style:italic;color:var(--acc)}
+  .sec-head .rule{flex:1;height:1px;background:var(--line);margin-bottom:12px;min-width:40px}
+
+  /* ══════════ galaksi: bintang bertaburan ══════════ */
+  #galaksi{padding:100px 0 60px}
+  .galaxy-inner{position:relative;padding:0 7vw}
+  #constSvg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  #constSvg line{stroke:rgba(236,200,127,.16);stroke-width:1;stroke-dasharray:2 6}
+  #constSvg circle{fill:rgba(236,200,127,.45)}
+  .masonry{columns:3 300px;column-gap:36px;position:relative;z-index:1}
+  .piece{break-inside:avoid;margin-bottom:34px;cursor:pointer}
+  .pframe{
+    background:var(--panel);border:1px solid var(--line);padding:9px 9px 13px;
+    backdrop-filter:blur(4px);
+    animation:drift var(--dur,9s) ease-in-out infinite;animation-delay:var(--del,0s);
+    transition:border-color .4s,box-shadow .4s;
+  }
+  .piece:hover .pframe{animation-play-state:paused;border-color:rgba(236,200,127,.4);box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 36px rgba(236,200,127,.08)}
+  .piece:hover .cornered::before,.piece:hover .cornered::after{opacity:1}
+  .ph{position:relative;overflow:hidden;background:#05070d}
+  .ph img,.ph video{width:100%;max-height:540px;object-fit:cover;filter:brightness(.82) saturate(.95);transition:filter .5s,transform .9s cubic-bezier(.22,1,.36,1)}
+  .piece:hover .ph img,.piece:hover .ph video{filter:brightness(1) saturate(1);transform:scale(1.035)}
+  .vbadge{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  .vbadge span{
+    width:50px;height:50px;border-radius:50%;display:grid;place-items:center;
+    background:rgba(6,9,17,.65);border:1px solid var(--line);color:var(--ink);
+    backdrop-filter:blur(4px);transition:.3s;
+  }
+  .piece:hover .vbadge span{transform:scale(1.12);border-color:var(--acc)}
+  .vbadge svg{width:19px;height:19px;margin-left:2px}
+  .pcap{display:flex;gap:13px;align-items:baseline;padding:13px 3px 0}
+  .pidx{font-size:10px;letter-spacing:.18em;color:var(--acc);min-width:24px;flex-shrink:0}
+  .cwrap{min-width:0}
+  .cap{display:block;font-family:var(--disp);font-style:italic;font-size:17.5px;line-height:1.35;overflow-wrap:break-word}
+  .pdate{display:block;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);margin-top:5px}
+  .flash .pframe{border-color:var(--acc);box-shadow:0 0 46px rgba(236,200,127,.35),0 26px 70px rgba(0,0,0,.5)}
+  .empty{border:1.5px dashed var(--line);padding:80px 34px;text-align:center;column-span:all}
+  .empty svg{width:32px;height:32px;color:var(--dim);margin-bottom:16px}
+  .empty p{font-family:var(--disp);font-style:italic;font-size:26px;margin-bottom:6px}
+  .empty span{display:block;font-size:12px;color:var(--dim);margin-bottom:28px}
+  @media(max-width:640px){.masonry{columns:1}}
+
+  /* ══════════ transmisi (kata-kata) ══════════ */
+  #transmisi{margin-top:90px;padding:110px 7vw;background:rgba(9,12,22,.72);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2);backdrop-filter:blur(6px)}
+  .qwrap{max-width:880px;margin:0 auto}
+  .qpanel{
+    padding:60px 56px 46px;background:var(--panel);border:1px solid var(--line);
+    backdrop-filter:blur(4px);transition:opacity .28s ease,transform .28s ease;
+  }
+  .qpanel.cornered::before,.qpanel.cornered::after{opacity:.6}
+  .qpanel.fade{opacity:0;transform:translateY(12px)}
+  .qtop{display:flex;align-items:center;gap:12px;margin-bottom:34px}
+  .live{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(236,200,127,.4)}50%{box-shadow:0 0 0 7px rgba(236,200,127,0)}}
+  .qlabel{font-size:9.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}
+  #qText{font-family:var(--disp);font-style:italic;font-weight:500;font-size:clamp(1.7rem,3.2vw,2.7rem);line-height:1.4}
+  #qSrc{display:block;margin-top:24px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--mut)}
+  .qbar{display:flex;align-items:center;justify-content:space-between;margin-top:44px;gap:16px;flex-wrap:wrap}
+  .qnav{display:flex;align-items:center;gap:16px}
+  .qnav .icon-btn{width:38px;height:38px}
+  #qCount{font-size:10.5px;letter-spacing:.24em;color:var(--dim)}
+  .qact{display:flex;gap:12px}
+  .mini{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    padding:10px 16px;border:1px solid var(--line);color:var(--mut);transition:.3s;
+  }
+  .mini:hover{border-color:var(--acc);color:var(--acc)}
+  .mini.danger:hover{border-color:#c96a5a;color:#d8756a}
+  .mini svg{width:13px;height:13px}
+  @media(max-width:640px){.qpanel{padding:46px 26px 36px}}
+
+  /* ══════════ footer ══════════ */
+  footer{padding:80px 7vw 130px;text-align:center}
+  footer .big{font-family:var(--disp);font-style:italic;font-size:22px;color:var(--mut);margin-bottom:14px}
+  footer .small{font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
+
+  /* ══════════ pemutar sinyal ══════════ */
+  #player{
+    position:fixed;right:22px;bottom:22px;z-index:900;
+    display:flex;align-items:center;gap:13px;padding:12px 16px 12px 12px;
+    background:rgba(11,15,28,.88);border:1px solid var(--line);backdrop-filter:blur(10px);
+    box-shadow:0 20px 50px rgba(0,0,0,.5);max-width:min(520px,94vw);
+    opacity:0;transform:translateY(90px);transition:opacity .8s ease .45s,transform .8s cubic-bezier(.22,1,.36,1) .45s;
+  }
+  body.arrived #player{opacity:1;transform:none}
+  .p-planet{
+    width:38px;height:38px;border-radius:50%;flex-shrink:0;position:relative;
+    background:radial-gradient(circle at 32% 30%, #3a466f, #131a33 65%);
+    box-shadow:0 0 12px rgba(120,140,255,.2);
+  }
+  .p-planet::after{
+    content:'';position:absolute;left:50%;top:50%;width:150%;height:40%;
+    transform:translate(-50%,-50%) rotate(-18deg);border-radius:50%;
+    border:1px solid rgba(236,200,127,.45);
+  }
+  .p-planet.on{animation:glowPulse 2.4s ease-in-out infinite}
+  @keyframes glowPulse{0%,100%{box-shadow:0 0 8px rgba(236,200,127,.12)}50%{box-shadow:0 0 22px rgba(236,200,127,.4)}}
+  .p-meta{min-width:0;width:132px}
+  #pTitle{display:block;font-family:var(--disp);font-style:italic;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-sub{display:block;font-size:8.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .pbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;color:var(--mut);transition:.25s;flex-shrink:0}
+  .pbtn:hover{color:var(--acc);background:rgba(233,236,246,.07)}
+  .pbtn.big{width:42px;height:42px;border:1px solid var(--line);color:var(--ink)}
+  .pbtn svg{width:15px;height:15px}
+  #pVol{width:86px;accent-color:var(--acc);cursor:pointer}
+  @media(max-width:620px){
+    #player{left:12px;right:12px;bottom:12px;justify-content:space-between}
+    #pVol,#pChange{display:none}
+    .p-meta{flex:1}
+  }
+
+  /* ══════════ overlay & modal ══════════ */
+  .overlay{
+    position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;
+    background:rgba(3,5,10,.72);backdrop-filter:blur(10px);padding:20px;
+    opacity:0;visibility:hidden;transition:.35s;
+  }
+  .overlay.show{opacity:1;visibility:visible}
+  .sheet{
+    background:#0c1120;width:min(560px,94vw);max-height:92vh;overflow-y:auto;
+    padding:38px 38px 34px;position:relative;border:1px solid var(--line);
+    box-shadow:0 40px 100px rgba(0,0,0,.65);transform:translateY(22px);transition:.35s;
+  }
+  .overlay.show .sheet{transform:none}
+  .sheet > *{position:relative}
+  .sheet > .sheet-x{position:absolute;top:16px;right:16px;width:36px;height:36px;z-index:5}
+  .sheet h3{font-family:var(--disp);font-style:italic;font-weight:500;font-size:30px;margin:8px 0 26px}
+  .fld{display:block;margin-top:22px;font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--mut)}
+  .fld input,.fld textarea{
+    display:block;width:100%;margin-top:6px;background:transparent;border:0;
+    border-bottom:1px solid var(--line);outline:none;padding:7px 2px;
+    font-family:var(--disp);font-style:italic;font-size:22px;color:var(--ink);
+  }
+  .fld textarea{resize:none;line-height:1.35}
+  .fld input:focus,.fld textarea:focus{border-color:var(--acc)}
+  .fld input[type=date]{font-family:var(--ui);font-style:normal;font-size:13px;letter-spacing:.04em;color-scheme:dark}
+  .fld input::placeholder,.fld textarea::placeholder{color:var(--dim);opacity:1}
+  .drop{border:1.5px dashed var(--line);padding:34px 20px;text-align:center;cursor:pointer;transition:.3s;margin-top:4px}
+  .drop:hover,.drop.over{border-color:var(--acc);background:rgba(236,200,127,.04)}
+  .drop > div > svg{width:28px;height:28px;color:var(--mut);margin-bottom:10px}
+  .drop p{font-family:var(--disp);font-style:italic;font-size:19px;color:var(--mut)}
+  #dropPrev img,#dropPrev video{max-height:190px;max-width:100%;margin:0 auto}
+  #dropName{display:block;margin-top:10px;font-size:11px;color:var(--dim);word-break:break-all}
+  .sheet .note{margin-top:14px;font-size:10px;letter-spacing:.06em;color:var(--dim);text-align:center}
+
+  /* ══════════ lightbox ══════════ */
+  #lb{z-index:1150}
+  .lb-stage{transform:translateY(20px);transition:.4s cubic-bezier(.22,1,.36,1)}
+  .overlay.show .lb-stage{transform:none}
+  .lb-frame{
+    background:#0c1120;border:1px solid var(--line);padding:12px;
+    max-width:min(760px,92vw);box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 60px rgba(236,200,127,.05);position:relative;
+  }
+  #lbMedia img,#lbMedia video{max-width:100%;max-height:58vh;margin:0 auto}
+  .lb-cap{font-family:var(--disp);font-style:italic;font-size:26px;text-align:center;margin-top:18px;line-height:1.25}
+  .lb-date{display:block;text-align:center;margin-top:8px;font-size:9.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
+  .lb-actions{display:flex;justify-content:center;gap:12px;margin-top:22px;padding-top:18px;border-top:1px dashed var(--line)}
+  .lb-edit{margin-top:16px}
+  .lb-edit textarea{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);font-family:var(--disp);font-style:italic;font-size:24px;color:var(--ink);outline:none;resize:none;text-align:center}
+  .lb-edit input{width:100%;margin-top:12px;background:transparent;border:0;border-bottom:1px solid var(--line);font-family:var(--ui);font-size:13px;padding:6px;outline:none;color:var(--ink);color-scheme:dark}
+  .lb-nav{position:fixed;top:50%;transform:translateY(-50%);background:rgba(11,15,28,.75);backdrop-filter:blur(6px)}
+  .lb-nav.prev{left:26px}.lb-nav.next{right:26px}
+  .lb-close{position:fixed;top:24px;right:24px;background:rgba(11,15,28,.75);backdrop-filter:blur(6px)}
+  @media(max-width:640px){.lb-nav{display:none}}
+
+  #mConfirm .sheet{width:min(420px,92vw);text-align:center}
+  #cfText{font-family:var(--disp);font-style:italic;font-size:22px;line-height:1.45;margin-bottom:28px}
+  .cf-btns{display:flex;gap:12px;justify-content:center}
+  .cf-btns .btn:last-child{background:#c96a5a;border-color:#c96a5a;color:#1c0e0a}
+  .cf-btns .btn:last-child:hover{background:#d8756a;border-color:#d8756a;color:#1c0e0a}
+
+  /* ══════════ toast ══════════ */
+  #toasts{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);z-index:1300;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+  .toast{
+    display:flex;align-items:center;gap:10px;background:rgba(11,15,28,.92);border:1px solid var(--line);
+    font-size:12.5px;letter-spacing:.04em;padding:13px 22px;backdrop-filter:blur(8px);
+    box-shadow:0 14px 36px rgba(0,0,0,.5);transition:.4s;white-space:nowrap;
+  }
+  .toast svg{width:15px;height:15px;color:var(--acc)}
+  .toast.out{opacity:0;transform:translateY(10px)}
+  @media(max-width:520px){.toast{white-space:normal;text-align:center}}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="nebula n1"></div>
+<div class="nebula n2"></div>
+
+<!-- ══════════ LAYAR PEMILIHAN SINYAL ══════════ -->
+<div id="intro">
+  <button id="introClose" class="icon-btn" hidden aria-label="tutup"><i data-lucide="x"></i></button>
+  <div class="intro-inner">
+    <div class="intro-left">
+      <div class="planet-stage">
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="planet"></div>
+        <div class="moon-orbit"><div class="moon"></div></div>
+      </div>
+      <p class="planet-cap">Stasiun Orbit · Galeri Kenangan</p>
+      <p class="intro-note">sinyal diputar langsung dari perangkatmu — tanpa internet, tanpa unggahan</p>
+    </div>
+    <div class="intro-right">
+      <p class="intro-eyebrow">SEBELUM MELUNCUR</p>
+      <h2>Pilih sinyal untuk <em>pelayaranmu</em></h2>
+      <div id="introTracks"></div>
+      <button id="skipMusic" class="ghost-link">masuk dalam diam</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <button class="brand" onclick="window.scrollTo({top:0,behavior:'smooth'})">Orbit<i>.</i></button>
+  <div class="hgroup">
+    <nav>
+      <a href="#galaksi">Galaksi</a>
+      <a href="#transmisi">Transmisi</a>
+    </nav>
+    <button class="icon-btn" id="navMusic" aria-label="ganti musik" style="width:40px;height:40px"><i data-lucide="orbit"></i></button>
+    <button class="btn solid" id="addBtn"><i data-lucide="rocket"></i>luncurkan</button>
+  </div>
+</header>
+
+<main>
+  <!-- ══════════ HERO ══════════ -->
+  <section id="hero">
+    <div class="hero-left">
+      <p class="eyebrow fade-up">Galeri orbit · Perjalanan hidup</p>
+      <h1 class="fade-up" data-d="1">Setiap kenangan, <em>sebuah bintang.</em></h1>
+      <p class="hero-sub fade-up" data-d="2">
+        Foto dan videomu melayang bebas di galaksi pribadimu — bertabur tanpa aturan kaku,
+        tapi selalu ada di tempatnya masing-masing. Tak ada satu pun yang padam.
+      </p>
+      <div class="hero-meta fade-up" data-d="3">
+        <span class="chip" id="heroDate"></span>
+        <span class="hero-stats" id="heroStats"></span>
+      </div>
+      <div class="hero-cta fade-up" data-d="4">
+        <button class="btn solid" id="heroAdd"><i data-lucide="rocket"></i>luncurkan kenangan</button>
+        <a class="link-quiet" href="#galaksi">jelajahi galaksi</a>
+      </div>
+    </div>
+    <div class="feat-slot fade-up" data-d="3" id="featSlot"></div>
+    <a class="scroll-cue" href="#galaksi"><i data-lucide="chevrons-down"></i>terjun lebih dalam</a>
+  </section>
+
+  <!-- ══════════ GALAKSI ══════════ -->
+  <section id="galaksi">
+    <div class="sec-head rv" style="padding:0 7vw">
+      <div>
+        <p class="eyebrow">Galaksi pribadi</p>
+        <h2>Kenangan yang <em>bertabur</em></h2>
+      </div>
+      <div class="rule"></div>
+      <button class="btn" id="albumAdd"><i data-lucide="rocket"></i>luncurkan</button>
+    </div>
+    <div class="galaxy-inner" id="galaxyInner">
+      <svg id="constSvg" aria-hidden="true"></svg>
+      <div class="masonry" id="masonry"></div>
+    </div>
+    <div style="text-align:center;padding:30px 7vw 90px">
+      <button class="link-quiet rv" id="footAdd">luncurkan lagi ke langit</button>
+    </div>
+  </section>
+
+  <!-- ══════════ TRANSMISI ══════════ -->
+  <section id="transmisi">
+    <div class="qwrap">
+      <div class="sec-head rv" style="padding:0;margin-bottom:38px">
+        <div>
+          <p class="eyebrow">Transmisi</p>
+          <h2>Kata yang <em>menyala</em></h2>
+        </div>
+        <div class="rule"></div>
+      </div>
+      <div class="qpanel cornered always-brackets rv" id="qCard">
+        <div class="qtop">
+          <span class="live"></span>
+          <span class="qlabel">SINYAL DITERIMA · <span id="qCount"></span></span>
+        </div>
+        <p id="qText"></p>
+        <span id="qSrc"></span>
+        <div class="qbar">
+          <div class="qnav">
+            <button class="icon-btn" id="qPrev" aria-label="sebelumnya"><i data-lucide="chevron-left"></i></button>
+            <button class="icon-btn" id="qNext" aria-label="berikutnya"><i data-lucide="chevron-right"></i></button>
+          </div>
+          <div class="qact">
+            <button class="mini danger" id="qDel"><i data-lucide="trash-2"></i>putuskan</button>
+            <button class="mini" id="qAdd"><i data-lucide="radio"></i>catat sinyal baru</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p class="big">Garis cahaya ini menghubungkan setiap kenanganmu.</p>
+    <p class="small">tersimpan lokal · tidak dikirim ke orbit mana pun</p>
+  </footer>
+</main>
+
+<!-- ══════════ PEMUTAR SINYAL ══════════ -->
+<div id="player">
+  <div class="p-planet" id="pPlanet"></div>
+  <div class="p-meta">
+    <span id="pTitle">belum ada sinyal</span>
+    <span class="p-sub" id="pSub">klik play untuk memilih</span>
+  </div>
+  <button class="pbtn" id="pPrev" aria-label="sebelumnya"><i data-lucide="skip-back"></i></button>
+  <button class="pbtn big" id="pPlay" aria-label="putar / jeda"><i data-lucide="play"></i></button>
+  <button class="pbtn" id="pNext" aria-label="berikutnya"><i data-lucide="skip-forward"></i></button>
+  <input type="range" id="pVol" min="0" max="1" step="0.01" value="0.85" aria-label="volume">
+  <button class="pbtn" id="pChange" aria-label="ganti musik"><i data-lucide="orbit"></i></button>
+</div>
+
+<!-- ══════════ LIGHTBOX ══════════ -->
+<div id="lb" class="overlay">
+  <button class="icon-btn lb-close" id="lbClose" aria-label="tutup"><i data-lucide="x"></i></button>
+  <button class="icon-btn lb-nav prev" id="lbPrev" aria-label="sebelumnya"><i data-lucide="chevron-left"></i></button>
+  <button class="icon-btn lb-nav next" id="lbNext" aria-label="berikutnya"><i data-lucide="chevron-right"></i></button>
+  <div class="lb-stage">
+    <div class="lb-frame cornered always-brackets">
+      <div id="lbMedia"></div>
+      <p class="lb-cap" id="lbCap"></p>
+      <span class="lb-date" id="lbDate"></span>
+      <div class="lb-edit" id="lbEditForm" hidden>
+        <textarea id="eCap" rows="2"></textarea>
+        <input type="date" id="eDate">
+        <button class="btn solid wide" id="eSave">simpan perubahan</button>
+      </div>
+      <div class="lb-actions">
+        <button class="mini" id="lbEdit"><i data-lucide="pencil"></i>ubah tulisan</button>
+        <button class="mini danger" id="lbDel"><i data-lucide="trash-2"></i>padamkan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: LUNCURKAN KENANGAN ══════════ -->
+<div id="mMemory" class="overlay">
+  <div class="sheet cornered always-brackets">
+    <button class="icon-btn sheet-x" data-close aria-label="tutup"><i data-lucide="x"></i></button>
+    <p class="eyebrow">Kenangan baru</p>
+    <h3>Luncurkan ke langit</h3>
+    <div class="drop" id="drop">
+      <div id="dropIdle">
+        <i data-lucide="image-plus"></i>
+        <p>tarik foto / video ke sini, atau klik untuk memilih</p>
+      </div>
+      <div id="dropPrev" hidden></div>
+    </div>
+    <input type="file" id="mediaPick" accept="image/*,video/*,.heic,.heif" hidden>
+    <label class="fld">teks di bingkai
+      <input type="text" id="memCap" maxlength="90" placeholder="di antara jutaan bintang, ada kami...">
+    </label>
+    <label class="fld">tanggal
+      <input type="date" id="memDate">
+    </label>
+    <button class="btn solid wide" id="memSave"><i data-lucide="rocket"></i>luncurkan</button>
+    <p class="note">tersimpan permanen di perangkatmu — tidak dikirim ke orbit mana pun</p>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: CATAT SINYAL ══════════ -->
+<div id="mQuote" class="overlay">
+  <div class="sheet cornered always-brackets">
+    <button class="icon-btn sheet-x" data-close aria-label="tutup"><i data-lucide="x"></i></button>
+    <p class="eyebrow">Transmisi</p>
+    <h3>Catat sinyal baru</h3>
+    <label class="fld">isi sinyal
+      <textarea id="qTextIn" rows="3" maxlength="180" placeholder="tulis kalimat yang ingin tetap menyala lama setelah ini..."></textarea>
+    </label>
+    <label class="fld">penanda (boleh kosong)
+      <input type="text" id="qSrcIn" maxlength="60" placeholder="— dari titik jauh di waktu itu">
+    </label>
+    <button class="btn solid wide" id="qSave"><i data-lucide="radio"></i>transmitkan</button>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: KONFIRMASI ══════════ -->
+<div id="mConfirm" class="overlay">
+  <div class="sheet cornered always-brackets" style="width:min(420px,92vw);text-align:center">
+    <p id="cfText"></p>
+    <div class="cf-btns">
+      <button class="btn" id="cfNo">batal</button>
+      <button class="btn solid" id="cfYes">ya, lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<input type="file" id="audioPick" accept="audio/*" hidden>
+
+<script>
+/* ═══════════════ util dasar ═══════════════ */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const refreshIcons = () => { try{ window.lucide && lucide.createIcons(); }catch(e){} };
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+function toast(msg, icon = 'check'){
+  const d = document.createElement('div');
+  d.className = 'toast';
+  d.innerHTML = `<i data-lucide="${icon}"></i><span>${esc(msg)}</span>`;
+  $('#toasts').append(d); refreshIcons();
+  setTimeout(() => d.classList.add('out'), 3200);
+  setTimeout(() => d.remove(), 3650);
+}
+function hash(s){ let h = 0; for(const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
+function fmtDate(iso){
+  if(!iso) return 'tanpa tanggal';
+  const d = new Date(iso + 'T00:00:00'); if(isNaN(d)) return 'tanpa tanggal';
+  return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }).replace(/\./g,' ').toUpperCase();
+}
+
+/* deteksi jenis berkas (tahan terhadap file.type kosong, mis. HEIC di Windows) */
+const isImg = f => (f.type || '').startsWith('image') || /\.(jpe?g|png|gif|webp|avif|heic|heif|bmp)$/i.test(f.name || '');
+const isVid = f => (f.type || '').startsWith('video') || /\.(mp4|mov|webm|m4v|mkv)$/i.test(f.name || '');
+
+/* ═══════════════ IndexedDB (tahan banting) ═══════════════ */
+const DB = {
+  db: null,
+  STORES: ['memories', 'tracks'],
+  open(){
+    return new Promise((res, rej) => {
+      if(!window.indexedDB) return rej(new Error('IndexedDB tidak tersedia'));
+      const mk = d => DB.STORES.forEach(s => {
+        if(!d.objectStoreNames.contains(s)) d.createObjectStore(s, { keyPath: 'id' });
+      });
+      let r;
+      try{ r = indexedDB.open('kenangan-db'); }catch(e){ return rej(e); }
+      r.onupgradeneeded = e => mk(e.target.result);
+      r.onsuccess = e => {
+        const d = e.target.result;
+        if(DB.STORES.every(s => d.objectStoreNames.contains(s))){ DB.db = d; return res(); }
+        /* database lama belum punya semua store → naikkan versi dan lengkapi */
+        const v = d.version + 1; d.close();
+        const r2 = indexedDB.open('kenangan-db', v);
+        r2.onupgradeneeded = ev => mk(ev.target.result);
+        r2.onsuccess = ev => { DB.db = ev.target.result; res(); };
+        r2.onerror = () => rej(r2.error);
+        r2.onblocked = () => rej(new Error('database terblokir tab lain'));
+      };
+      r.onerror = () => rej(r.error);
+    });
+  },
+  put(store, val){ return new Promise((res, rej) => {
+    try{
+      if(!DB.db) throw new Error('database belum siap');
+      const t = DB.db.transaction(store, 'readwrite');
+      t.objectStore(store).put(val);
+      t.oncomplete = () => res();
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error || new Error('transaksi dibatalkan'));
+    }catch(e){ rej(e); }
+  }); },
+  get(store, key){ return new Promise(res => {
+    try{
+      const q = DB.db.transaction(store, 'readonly').objectStore(store).get(key);
+      q.onsuccess = () => res(q.result); q.onerror = () => res(undefined);
+    }catch(e){ res(undefined); }
+  }); },
+  all(store){ return new Promise(res => {
+    try{
+      const q = DB.db.transaction(store, 'readonly').objectStore(store).getAll();
+      q.onsuccess = () => res(q.result || []); q.onerror = () => res([]);
+    }catch(e){ res([]); }
+  }); },
+  del(store, key){ return new Promise(res => {
+    try{
+      const t = DB.db.transaction(store, 'readwrite');
+      t.objectStore(store).delete(key); t.oncomplete = () => res(); t.onerror = () => res();
+    }catch(e){ res(); }
+  }); }
+};
+
+/* ═══════════════ langit: bintang & meteor ═══════════════ */
+const Sky = {
+  cv: null, cx: null, W: 0, H: 0, stars: [], meteors: [], mx: .5, my: .5,
+  init(){
+    this.cv = $('#stars'); this.cx = this.cv.getContext('2d');
+    this.size();
+    for(let i = 0; i < 220; i++){
+      const r = Math.random();
+      this.stars.push({
+        x: Math.random(), y: Math.random(),
+        r: Math.random() * 1.2 + .25,
+        a: .25 + Math.random() * .55,
+        tw: Math.random() * Math.PI * 2,
+        sp: .4 + Math.random() * 1.2,
+        d: Math.random() * .7 + .15,
+        c: r < .82 ? '#dfe6ff' : (r < .95 ? '#ecc87f' : '#ffc9c9')
+      });
+    }
+    addEventListener('mousemove', e => {
+      this.mx = e.clientX / innerWidth; this.my = e.clientY / innerHeight;
+    });
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduced){ this.drawOnce(); } else { requestAnimationFrame(t => this.loop(t)); }
+  },
+  size(){
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    this.W = innerWidth; this.H = innerHeight;
+    this.cv.width = this.W * dpr; this.cv.height = this.H * dpr;
+    this.cv.style.width = this.W + 'px'; this.cv.style.height = this.H + 'px';
+    this.cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  },
+  paint(t){
+    const cx = this.cx;
+    cx.clearRect(0, 0, this.W, this.H);
+    for(const s of this.stars){
+      const px = s.x * this.W + (this.mx - .5) * s.d * 30;
+      const py = s.y * this.H + (this.my - .5) * s.d * 20;
+      cx.globalAlpha = Math.max(.05, Math.min(1, s.a + Math.sin(t * .001 * s.sp + s.tw) * .25));
+      cx.fillStyle = s.c;
+      cx.beginPath(); cx.arc(px, py, s.r, 0, 7); cx.fill();
+    }
+    if(Math.random() < .004 && this.meteors.length < 2){
+      this.meteors.push({
+        x: Math.random() * this.W * .75, y: Math.random() * this.H * .3,
+        vx: 5 + Math.random() * 4, vy: 2.5 + Math.random() * 2, life: 1
+      });
+    }
+    for(let i = this.meteors.length - 1; i >= 0; i--){
+      const m = this.meteors[i];
+      m.x += m.vx; m.y += m.vy; m.life -= .016;
+      if(m.life <= 0){ this.meteors.splice(i, 1); continue; }
+      const g = cx.createLinearGradient(m.x, m.y, m.x - m.vx * 11, m.y - m.vy * 11);
+      g.addColorStop(0, `rgba(240,226,196,${.9 * m.life})`);
+      g.addColorStop(1, 'rgba(240,226,196,0)');
+      cx.globalAlpha = 1; cx.strokeStyle = g; cx.lineWidth = 1.4;
+      cx.beginPath(); cx.moveTo(m.x, m.y); cx.lineTo(m.x - m.vx * 11, m.y - m.vy * 11); cx.stroke();
+    }
+    cx.globalAlpha = 1;
+  },
+  loop(t){ this.paint(t); requestAnimationFrame(tt => this.loop(tt)); },
+  drawOnce(){ this.paint(1200); }
+};
+
+/* ═══════════════ mesin audio + sinyal generatif ═══════════════ */
+const AudioEngine = {
+  ctx: null, master: null, rvIn: null,
+  init(){
+    if(this.ctx) return;
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.ctx.createGain(); this.master.gain.value = Player.vol;
+    this.master.connect(this.ctx.destination);
+    const conv = this.ctx.createConvolver(); conv.buffer = this.makeIR(3.2, 2.4);
+    this.rvIn = this.ctx.createGain(); this.rvIn.gain.value = .3;
+    this.rvIn.connect(conv); conv.connect(this.master);
+  },
+  makeIR(dur, dec){
+    const rate = this.ctx.sampleRate, len = rate * dur;
+    const imp = this.ctx.createBuffer(2, len, rate);
+    for(let c = 0; c < 2; c++){
+      const d = imp.getChannelData(c);
+      for(let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, dec);
+    }
+    return imp;
+  }
+};
+
+function makeStop(ctx, bus, timer){
+  return () => {
+    clearInterval(timer);
+    try{ bus.gain.setTargetAtTime(0, ctx.currentTime, .12); }catch(e){}
+    setTimeout(() => { try{ bus.disconnect(); }catch(e){} }, 800);
+  };
+}
+
+const GEN_TRACKS = [
+  { id:'stasiun', title:'Stasiun Senja', desc:'piano pelan yang mengambang di luar jendela kapsul',
+    build(E){
+      const { ctx } = E, bus = ctx.createGain();
+      bus.connect(E.master); bus.connect(E.rvIn);
+      const beat = .8; let t = ctx.currentTime + .15, step = 0;
+      const prog = [
+        { b:65.41, t:[261.63,329.63,392.00,523.25,783.99] },
+        { b:55.00, t:[220.00,261.63,329.63,440.00,659.25] },
+        { b:43.65, t:[174.61,261.63,349.23,440.00,523.25] },
+        { b:49.00, t:[196.00,246.94,392.00,587.33,783.99] }
+      ];
+      const piano = (tt, f, v) => {
+        const o  = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+        const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 2.001;
+        const g  = ctx.createGain(), g2 = ctx.createGain();
+        g.gain.setValueAtTime(0, tt);  g.gain.linearRampToValueAtTime(v, tt + .012);  g.gain.exponentialRampToValueAtTime(.0001, tt + 3);
+        g2.gain.setValueAtTime(0, tt); g2.gain.linearRampToValueAtTime(v * .25, tt + .008); g2.gain.exponentialRampToValueAtTime(.0001, tt + 1.1);
+        o.connect(g); o2.connect(g2); g.connect(bus); g2.connect(bus);
+        o.start(tt); o2.start(tt); o.stop(tt + 3.1); o2.stop(tt + 1.2);
+      };
+      const timer = setInterval(() => {
+        while(t < ctx.currentTime + 1.4){
+          const ch = prog[Math.floor(step / 8) % 4], inBar = step % 8;
+          if(inBar === 0){ piano(t, ch.b, .16); piano(t + beat * 4, ch.b, .07); }
+          if(Math.random() < .6) piano(t + Math.random() * .04, ch.t[Math.floor(Math.random() * ch.t.length)], .09 + Math.random() * .05);
+          if(inBar === 4 && Math.random() < .7) piano(t, ch.t[Math.floor(Math.random() * ch.t.length)] * 2, .06);
+          t += beat; step++;
+        }
+      }, 200);
+      return makeStop(ctx, bus, timer);
+    }
+  },
+  { id:'meteor', title:'Hujan Meteor', desc:'gemeretak partikel kecil yang membakar langit',
+    build(E){
+      const { ctx } = E, bus = ctx.createGain();
+      bus.connect(E.master); bus.connect(E.rvIn);
+      const len = ctx.sampleRate * 2, nb = ctx.createBuffer(1, len, ctx.sampleRate), d = nb.getChannelData(0);
+      for(let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      const src = ctx.createBufferSource(); src.buffer = nb; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+      const rg = ctx.createGain(); rg.gain.value = .05;
+      const lfo = ctx.createOscillator(); lfo.frequency.value = .11;
+      const lg = ctx.createGain(); lg.gain.value = .02;
+      lfo.connect(lg); lg.connect(rg.gain); lfo.start();
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3400; bp.Q.value = .6;
+      const hg = ctx.createGain(); hg.gain.value = .012;
+      src.connect(lp); lp.connect(rg); rg.connect(bus);
+      src.connect(bp); bp.connect(hg); hg.connect(bus); src.start();
+      const chords = [[110,164.81,261.63],[87.31,130.81,220],[98,146.83,246.94],[130.81,196,329.63]];
+      const penta  = [880, 987.77, 1108.73, 1318.5, 1480, 1760];
+      let t = ctx.currentTime + .2, step = 0; const beat = 1.9;
+      const pad = (tt, fs) => fs.forEach(f => {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * (1 + (Math.random() - .5) * .003);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, tt); g.gain.linearRampToValueAtTime(.05, tt + 2.4);
+        g.gain.setValueAtTime(.05, tt + beat * 4 - 2); g.gain.linearRampToValueAtTime(0, tt + beat * 4);
+        o.connect(g); g.connect(bus); o.start(tt); o.stop(tt + beat * 4 + .1);
+      });
+      const chime = (tt, f) => {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, tt); g.gain.linearRampToValueAtTime(.07, tt + .01); g.gain.exponentialRampToValueAtTime(.0001, tt + 3.5);
+        o.connect(g); g.connect(bus); o.start(tt); o.stop(tt + 3.6);
+      };
+      const timer = setInterval(() => {
+        while(t < ctx.currentTime + 1.6){
+          if(step % 2 === 0) pad(t, chords[Math.floor(step / 2) % 4]);
+          if(Math.random() < .16) chime(t + .1, penta[Math.floor(Math.random() * penta.length)]);
+          t += beat; step++;
+        }
+      }, 250);
+      return makeStop(ctx, bus, timer);
+    }
+  },
+  { id:'andromeda', title:'Denting Andromeda', desc:'denting music box dari galaksi sebelah',
+    build(E){
+      const { ctx } = E, bus = ctx.createGain();
+      bus.connect(E.master); bus.connect(E.rvIn);
+      const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5];
+      const lows  = [130.81, 98, 110, 164.81];
+      const box = (tt, f, v) => {
+        const o  = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+        const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 3.99;
+        const g  = ctx.createGain(), g2 = ctx.createGain();
+        g.gain.setValueAtTime(0, tt);  g.gain.linearRampToValueAtTime(v, tt + .006);  g.gain.exponentialRampToValueAtTime(.0001, tt + 1.7);
+        g2.gain.setValueAtTime(0, tt); g2.gain.linearRampToValueAtTime(v * .12, tt + .004); g2.gain.exponentialRampToValueAtTime(.0001, tt + .5);
+        o.connect(g); o2.connect(g2); g.connect(bus); g2.connect(bus);
+        o.start(tt); o2.start(tt); o.stop(tt + 1.8); o2.stop(tt + .6);
+      };
+      let t = ctx.currentTime + .2, step = 0, pos = 2; const bt = .42;
+      const moves = [-2, -1, -1, 1, 1, 2];
+      const timer = setInterval(() => {
+        while(t < ctx.currentTime + 1.2){
+          if(step % 16 === 0) box(t, lows[Math.floor(Math.random() * lows.length)] / 2, .12);
+          if(Math.random() < .8){
+            pos = Math.min(scale.length - 1, Math.max(0, pos + moves[Math.floor(Math.random() * moves.length)]));
+            box(t, scale[pos], .09 + Math.random() * .04);
+          }
+          t += bt; step++;
+        }
+      }, 200);
+      return makeStop(ctx, bus, timer);
+    }
+  }
+];
+
+/* ═══════════════ pemutar sinyal ═══════════════ */
+const Player = {
+  tracks: [], idx: -1, playing: false, mode: null, vol: .85,
+  audio: null, audioUrl: null, stopFns: [],
+  buildList(){
+    this.tracks = [
+      ...GEN_TRACKS.map(t => ({ id: t.id, title: t.title, desc: t.desc, gen: t })),
+      ...userTracks.map(t => ({ ...t }))
+    ];
+  },
+  halt(){
+    this.stopFns.forEach(f => f && f()); this.stopFns = [];
+    if(this.audio){ this.audio.pause(); if(this.audioUrl) URL.revokeObjectURL(this.audioUrl); this.audio = null; }
+  },
+  async play(i){
+    if(!this.tracks.length) return;
+    this.idx = ((i % this.tracks.length) + this.tracks.length) % this.tracks.length;
+    const t = this.tracks[this.idx];
+    this.halt();
+    if(t.gen){
+      AudioEngine.init();
+      if(AudioEngine.ctx.state === 'suspended') await AudioEngine.ctx.resume();
+      this.stopFns = [t.gen.build(AudioEngine)];
+      this.mode = 'gen';
+    } else {
+      const rec = await DB.get('tracks', t.id);
+      if(!rec){ toast('sinyal tidak ditemukan', 'alert-circle'); return; }
+      const blob = rec.data ? new Blob([rec.data], { type: rec.mime || 'audio/mpeg' }) : rec.blob;
+      const u = URL.createObjectURL(blob);
+      this.audio = new Audio(u); this.audio.loop = true; this.audio.volume = this.vol; this.audioUrl = u;
+      try{ await this.audio.play(); }catch(e){}
+      this.mode = 'file';
+    }
+    this.playing = true; updatePlayerUI();
+  },
+  async toggle(){
+    if(this.idx < 0){ openIntro(true); return; }
+    if(this.playing){
+      if(this.mode === 'gen') AudioEngine.ctx.suspend(); else this.audio.pause();
+      this.playing = false;
+    } else {
+      if(this.mode === 'gen'){ AudioEngine.ctx.resume(); } else { try{ await this.audio.play(); }catch(e){} }
+      this.playing = true;
+    }
+    updatePlayerUI();
+  },
+  setVol(v){
+    this.vol = v;
+    if(AudioEngine.master && AudioEngine.ctx) AudioEngine.master.gain.setTargetAtTime(v, AudioEngine.ctx.currentTime, .05);
+    if(this.audio) this.audio.volume = v;
+  }
+};
+
+function updatePlayerUI(){
+  const t = Player.idx >= 0 ? Player.tracks[Player.idx] : null;
+  $('#pTitle').textContent = t ? t.title : 'belum ada sinyal';
+  $('#pSub').textContent   = t ? (t.gen ? 'sinyal generatif · dibuat di tempat' : 'transmisi pribadimu') : 'klik play untuk memilih';
+  $('#pPlanet').classList.toggle('on', Player.playing);
+  $('#pPlay').innerHTML = `<i data-lucide="${Player.playing ? 'pause' : 'play'}"></i>`;
+  refreshIcons();
+}
+
+/* ═══════════════ intro ═══════════════ */
+let userTracks = [];
+
+function renderIntroTracks(){
+  const rows = [
+    ...GEN_TRACKS.map(t => ({ ...t, meta: 'generatif' })),
+    ...userTracks.map(t => ({ ...t, meta: 'milikmu' }))
+  ];
+  $('#introTracks').innerHTML =
+    rows.map((t, i) => `
+      <div class="track" data-id="${t.id}">
+        <span class="no">${String(i + 1).padStart(2, '0')}</span>
+        <span class="twrap"><span class="t">${esc(t.title)}</span><span class="d">${esc(t.desc || 'transmisi pribadimu')}</span></span>
+        <span class="meta">${t.meta}</span>
+        ${t.file ? `<button class="tdel" data-del="${t.id}" aria-label="hapus sinyal"><i data-lucide="x"></i></button>` : ''}
+      </div>`).join('') + `
+      <div class="track upload" data-id="__upload">
+        <span class="no"><i data-lucide="music"></i></span>
+        <span class="twrap"><span class="t">Transmisi pribadi</span><span class="d">pakai lagu dari perangkatmu</span></span>
+        <span class="meta"><i data-lucide="upload"></i></span>
+      </div>`;
+  $('#introTracks').querySelectorAll('.track').forEach(el => {
+    el.addEventListener('click', e => {
+      if(e.target.closest('.tdel')) return;
+      pickTrack(el.dataset.id);
+    });
+  });
+  $('#introTracks').querySelectorAll('.tdel').forEach(b => {
+    b.addEventListener('click', async e => {
+      e.stopPropagation();
+      const id = b.dataset.del;
+      const wasCurrent = Player.tracks[Player.idx] && Player.tracks[Player.idx].id === id;
+      await DB.del('tracks', id);
+      userTracks = userTracks.filter(t => t.id !== id);
+      Player.buildList();
+      if(wasCurrent){ Player.halt(); Player.idx = -1; Player.playing = false; }
+      renderIntroTracks(); updatePlayerUI(); toast('sinyal diputus', 'trash-2');
+    });
+  });
+  refreshIcons();
+}
+
+async function pickTrack(id){
+  if(id === '__upload'){ $('#audioPick').click(); return; }
+  const i = Player.tracks.findIndex(t => t.id === id);
+  await Player.play(i >= 0 ? i : 0);
+  closeIntro();
+}
+
+function openIntro(reopen){
+  $('#intro').classList.remove('hide');
+  $('#introClose').hidden = !reopen;
+  renderIntroTracks();
+}
+function closeIntro(){
+  $('#intro').classList.add('hide');
+  document.body.classList.add('arrived');
+}
+
+/* ═══════════════ galaksi ═══════════════ */
+let memories = [];
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+}), { threshold: .1 });
+
+function sortMemories(){
+  memories.sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
+}
+function renderStats(){
+  $('#heroStats').textContent = `${memories.length} bintang · ${quotes.length} sinyal`;
+}
+
+function scatterSeed(id){
+  const h = hash(id);
+  return {
+    rot: (((h % 9) - 4) * .6).toFixed(1) + 'deg',
+    mt:  (h % 5) * 14,
+    dur: (7 + h % 5) + 's',
+    del: (-(h % 7) * .7) + 's'
+  };
+}
+
+function renderFeatured(){
+  const slot = $('#featSlot');
+  if(!memories.length){
+    slot.innerHTML = `
+      <div class="feat-empty">
+        <i data-lucide="orbit"></i>
+        <p>bintang utama belum ditemukan</p>
+        <button class="btn" id="featAdd"><i data-lucide="rocket"></i>luncurkan yang pertama</button>
+      </div>`;
+    $('#featAdd').onclick = openMemoryModal;
+  } else {
+    const m = memories[0], s = scatterSeed(m.id);
+    slot.innerHTML = `
+      <figure class="feat cornered" data-id="${m.id}" style="--rot:${s.rot}">
+        <div class="fph">${m.type === 'image'
+          ? `<img src="${m.url}" alt="${esc(m.caption)}">`
+          : `<video src="${m.url}" muted playsinline preload="metadata"></video>`}</div>
+        <figcaption>
+          <span class="ftag"><i data-lucide="sparkles"></i>BINTANG TERBARU</span>
+          <span class="fcap">${esc(m.caption) || 'tanpa nama'}</span>
+          <span class="fdate">${fmtDate(m.date)}</span>
+        </figcaption>
+      </figure>`;
+    slot.querySelector('.feat').onclick = () => openLightbox(m.id);
+  }
+  refreshIcons();
+}
+
+function renderMasonry(){
+  renderFeatured();
+  const wrap = $('#masonry');
+  if(!memories.length){
+    wrap.innerHTML = `
+      <div class="empty rv in">
+        <i data-lucide="telescope"></i>
+        <p>Langit ini masih gelap.</p>
+        <span>luncurkan foto atau video pertamamu — biarkan ia jadi bintang pertama</span>
+        <button class="btn solid" id="emptyAdd"><i data-lucide="rocket"></i>luncurkan kenangan</button>
+      </div>`;
+    $('#emptyAdd').onclick = openMemoryModal;
+    refreshIcons(); scheduleConstellation(); return;
+  }
+  wrap.innerHTML = memories.map((m, i) => {
+    const s = scatterSeed(m.id);
+    return `
+    <figure class="piece rv" data-id="${m.id}" style="margin-top:${s.mt}px;--rot:${s.rot};--dur:${s.dur};--del:${s.del}">
+      <div class="pframe cornered">
+        <div class="ph">${m.type === 'image'
+          ? `<img src="${m.url}" alt="${esc(m.caption)}" loading="lazy">`
+          : `<video src="${m.url}" muted playsinline preload="metadata"></video>
+             <span class="vbadge"><span><i data-lucide="play"></i></span></span>`}</div>
+        <figcaption class="pcap">
+          <span class="pidx">${String(i + 1).padStart(2, '0')}</span>
+          <span class="cwrap">
+            <span class="cap">${esc(m.caption) || 'tanpa nama'}</span>
+            <span class="pdate">${fmtDate(m.date)}</span>
+          </span>
+        </figcaption>
+      </div>
+    </figure>`;}).join('');
+  wrap.querySelectorAll('.piece').forEach(el => {
+    el.onclick = () => openLightbox(el.dataset.id);
+    const v = el.querySelector('video');
+    if(v){
+      el.addEventListener('mouseenter', () => v.play().catch(() => {}));
+      el.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0; });
+    }
+    const img = el.querySelector('img');
+    if(img) img.addEventListener('load', scheduleConstellation);
+    io.observe(el);
+  });
+  refreshIcons();
+  scheduleConstellation();
+}
+
+/* ---------- garis rasi bintang ---------- */
+function drawConstellations(){
+  const cont = $('#galaxyInner'), svg = $('#constSvg');
+  const items = [...cont.querySelectorAll('.piece')];
+  const pts = items.map(el => ({
+    x: el.offsetLeft + el.offsetWidth / 2,
+    y: el.offsetTop  + el.offsetHeight / 2
+  }));
+  if(!pts.length){ svg.innerHTML = ''; return; }
+  let marks = pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="2.4"/>`).join('');
+  if(pts.length > 1){
+    const seen = new Set(); let lines = '';
+    pts.forEach((p, i) => {
+      pts.map((q, j) => ({ j, d: (p.x - q.x) ** 2 + (p.y - q.y) ** 2 }))
+        .filter(o => o.j !== i)
+        .sort((a, b) => a.d - b.d).slice(0, 2)
+        .forEach(({ j }) => {
+          const key = i < j ? i + '-' + j : j + '-' + i;
+          if(seen.has(key)) return;
+          seen.add(key);
+          lines += `<line x1="${p.x}" y1="${p.y}" x2="${pts[j].x}" y2="${pts[j].y}"/>`;
+        });
+    });
+    marks = lines + marks;
+  }
+  svg.setAttribute('viewBox', `0 0 ${cont.offsetWidth} ${cont.offsetHeight}`);
+  svg.innerHTML = marks;
+}
+const scheduleConstellation = debounce(() => requestAnimationFrame(drawConstellations), 120);
+
+function renderAll(){
+  sortMemories(); renderMasonry(); renderStats();
+}
+
+/* ---------- modal luncurkan ---------- */
+let pendingMedia = null;
+
+function openMemoryModal(){
+  $('#memDate').value = new Date().toISOString().slice(0, 10);
+  $('#mMemory').classList.add('show');
+}
+function resetMemoryModal(){
+  pendingMedia = null;
+  $('#dropIdle').hidden = false; $('#dropPrev').hidden = true; $('#dropPrev').innerHTML = '';
+  $('#memCap').value = ''; $('#mediaPick').value = '';
+}
+function setMediaPreview(file){
+  pendingMedia = file;
+  const url = URL.createObjectURL(file);
+  $('#dropPrev').innerHTML =
+    (isVid(file)
+      ? `<video src="${url}" muted autoplay loop playsinline></video>`
+      : `<img src="${url}" alt="">`) +
+    `<span id="dropName">${esc(file.name)}</span>`;
+  $('#dropIdle').hidden = true; $('#dropPrev').hidden = false;
+}
+function validMedia(f){
+  if(!f) return false;
+  if(isImg(f) || isVid(f)) return true;
+  toast('hanya foto atau video yang bisa diluncurkan', 'alert-circle');
+  return false;
+}
+
+async function saveMemory(){
+  if(!pendingMedia){ toast('pilih foto atau videonya dulu', 'alert-circle'); return; }
+  const f = pendingMedia, video = isVid(f);
+  const mime = f.type || (video ? 'video/mp4' : 'image/jpeg');
+  let data;
+  try{ data = await f.arrayBuffer(); }
+  catch(e){ console.error(e); toast('file tidak bisa dibaca, coba pilih ulang', 'alert-circle'); return; }
+
+  /* disimpan sebagai ArrayBuffer (jauh lebih andal di semua browser daripada File/Blob) */
+  const rec = {
+    id: uid(),
+    type: video ? 'video' : 'image',
+    caption: $('#memCap').value.trim(),
+    date: $('#memDate').value,
+    createdAt: Date.now(),
+    mime, data
+  };
+  let saved = true;
+  try{ await DB.put('memories', rec); }
+  catch(e){ console.error('gagal simpan ke IndexedDB:', e); saved = false; }
+
+  /* foto tetap ditampilkan walau penyimpanan gagal, supaya tidak terasa "tidak mau masuk" */
+  const blob = new Blob([data], { type: mime });
+  memories.push({ ...rec, blob, url: URL.createObjectURL(blob) });
+  renderAll();
+  $('#mMemory').classList.remove('show'); resetMemoryModal();
+  if(saved) toast('bintang baru menyala di galaksimu', 'sparkles');
+  else toast('tampil, tapi BELUM tersimpan permanen — penyimpanan browser ditolak', 'alert-circle');
+  setTimeout(() => {
+    const el = $(`.piece[data-id="${rec.id}"]`);
+    if(el){
+      el.scrollIntoView({ behavior:'smooth', block:'center' });
+      el.classList.add('flash');
+      setTimeout(() => el.classList.remove('flash'), 2200);
+    }
+  }, 250);
+}
+
+/* ---------- lightbox ---------- */
+let lbIndex = -1;
+
+function openLightbox(id){
+  lbIndex = memories.findIndex(m => m.id === id);
+  if(lbIndex < 0) return;
+  renderLightbox();
+  $('#lb').classList.add('show');
+}
+function renderLightbox(){
+  const m = memories[lbIndex]; if(!m) return;
+  $('#lbMedia').innerHTML = m.type === 'image'
+    ? `<img src="${m.url}" alt="${esc(m.caption)}">`
+    : `<video src="${m.url}" controls autoplay playsinline></video>`;
+  $('#lbCap').textContent  = m.caption || 'tanpa nama';
+  $('#lbDate').textContent = fmtDate(m.date);
+  $('#lbEditForm').hidden = true;
+  $('#lbCap').hidden = false; $('#lbDate').hidden = false;
+  refreshIcons();
+}
+const lbMove = d => {
+  if(!memories.length) return;
+  lbIndex = (lbIndex + d + memories.length) % memories.length; renderLightbox();
+};
+
+async function saveEdit(){
+  const m = memories[lbIndex]; if(!m) return;
+  m.caption = $('#eCap').value.trim();
+  m.date    = $('#eDate').value;
+  const rec = { id: m.id, type: m.type, caption: m.caption, date: m.date, createdAt: m.createdAt, mime: m.mime };
+  if(m.data) rec.data = m.data; else rec.blob = m.blob;   /* data lama (Blob) tetap didukung */
+  try{ await DB.put('memories', rec); }
+  catch(e){ console.error(e); toast('gagal menyimpan perubahan', 'alert-circle'); return; }
+  sortMemories();
+  lbIndex = memories.findIndex(x => x.id === m.id);
+  renderMasonry(); renderLightbox();
+  toast('tulisan di bingkai diperbarui');
+}
+
+/* ═══════════════ transmisi ═══════════════ */
+let quotes = [], qi = 0, qHover = false;
+
+function loadQuotes(){
+  try{ quotes = JSON.parse(localStorage.getItem('ken-quotes')) || null; }catch(e){ quotes = null; }
+  if(!Array.isArray(quotes) || !quotes.length){
+    quotes = [
+      { t: 'Kita semua terbuat dari debu bintang yang mencoba mengingat jalan pulangnya.', s: 'catatan navigasi' },
+      { t: 'Jarak bukanlah kekosongan; ia cuma langit yang belum kita isi dengan cerita.', s: 'transmisi 01' },
+      { t: 'Yang pergi tidak pernah sungguh pergi — ia hanya berpindah orbit, lebih dekat ke ingatan.', s: 'untuk yang merindukan' }
+    ];
+  }
+}
+function saveQuotes(){ try{ localStorage.setItem('ken-quotes', JSON.stringify(quotes)); }catch(e){} }
+
+function renderQuote(instant){
+  const box = $('#qCard');
+  const fill = () => {
+    if(!quotes.length){
+      $('#qText').textContent = 'Langit ini sunyi. Catat sinyal pertamamu — biarkan ada yang menyala di sini.';
+      $('#qSrc').textContent = '';
+    } else {
+      $('#qText').textContent = quotes[qi].t;
+      $('#qSrc').textContent  = quotes[qi].s ? '— ' + quotes[qi].s : '';
+    }
+    $('#qCount').textContent = quotes.length ? `${String(qi + 1).padStart(2, '0')}/${String(quotes.length).padStart(2, '0')}` : '00/00';
+    renderStats();
+  };
+  if(instant){ fill(); return; }
+  box.classList.add('fade');
+  setTimeout(() => { fill(); box.classList.remove('fade'); }, 280);
+}
+const qGo = d => { if(!quotes.length) return; qi = (qi + d + quotes.length) % quotes.length; renderQuote(); };
+
+/* ═══════════════ konfirmasi ═══════════════ */
+let cfCb = null;
+function confirmDialog(msg, cb){
+  $('#cfText').textContent = msg;
+  cfCb = cb;
+  $('#mConfirm').classList.add('show');
+}
+
+/* ═══════════════ ikat semua event ═══════════════ */
+function bindEvents(){
+  $('#skipMusic').onclick  = () => { closeIntro(); toast('selamat melayang — sinyal bisa dipilih kapan saja', 'orbit'); };
+  $('#introClose').onclick = () => $('#intro').classList.add('hide');
+  $('#navMusic').onclick   = () => openIntro(true);
+  $('#pChange').onclick    = () => openIntro(true);
+  $('#audioPick').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if(!f || !((f.type || '').startsWith('audio') || /\.(mp3|wav|ogg|m4a|aac|flac|opus)$/i.test(f.name))){
+      toast('pilih berkas audio ya', 'alert-circle'); return;
+    }
+    const id = uid(), title = f.name.replace(/\.[^.]+$/, '');
+    try{
+      const data = await f.arrayBuffer();
+      await DB.put('tracks', { id, title, mime: f.type || 'audio/mpeg', data });
+    }catch(err){ console.error(err); toast('gagal menyimpan lagu', 'alert-circle'); return; }
+    userTracks.push({ id, title, file: true });
+    Player.buildList(); renderIntroTracks();
+    await Player.play(Player.tracks.findIndex(t => t.id === id));
+    closeIntro();
+    toast('transmisi pribadimu siap', 'music');
+  };
+
+  $('#pPlay').onclick = () => Player.toggle();
+  $('#pNext').onclick = () => Player.play(Player.idx + 1);
+  $('#pPrev').onclick = () => Player.play(Player.idx - 1);
+  $('#pVol').oninput  = e => Player.setVol(parseFloat(e.target.value));
+
+  $('#addBtn').onclick   = openMemoryModal;
+  $('#heroAdd').onclick  = openMemoryModal;
+  $('#albumAdd').onclick = openMemoryModal;
+  $('#footAdd').onclick  = openMemoryModal;
+
+  $('#drop').onclick = () => $('#mediaPick').click();
+  $('#mediaPick').onchange = e => {
+    const f = e.target.files[0];
+    if(validMedia(f)) setMediaPreview(f);
+    e.target.value = '';
+  };
+  ['dragover', 'dragenter'].forEach(ev => $('#drop').addEventListener(ev, e => { e.preventDefault(); $('#drop').classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => $('#drop').addEventListener(ev, e => { e.preventDefault(); $('#drop').classList.remove('over'); }));
+  $('#drop').addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if(validMedia(f)) setMediaPreview(f);
+  });
+  /* cegah browser membuka file kalau terlepas di luar kotak unggah */
+  ['dragover', 'drop'].forEach(ev => window.addEventListener(ev, e => e.preventDefault()));
+
+  $('#memSave').onclick = saveMemory;
+  $('#memCap').addEventListener('keydown', e => { if(e.key === 'Enter') saveMemory(); });
+
+  $('#lbClose').onclick = () => { $('#lb').classList.remove('show'); $('#lbMedia').innerHTML = ''; };
+  $('#lbPrev').onclick  = () => lbMove(-1);
+  $('#lbNext').onclick  = () => lbMove(1);
+  $('#lbEdit').onclick  = () => {
+    const m = memories[lbIndex]; if(!m) return;
+    $('#eCap').value = m.caption || ''; $('#eDate').value = m.date || '';
+    $('#lbEditForm').hidden = false;
+    $('#lbCap').hidden = true; $('#lbDate').hidden = true;
+    $('#eCap').focus();
+  };
+  $('#eSave').onclick = saveEdit;
+  $('#lbDel').onclick = () => {
+    const m = memories[lbIndex]; if(!m) return;
+    confirmDialog('Padamkan bintang ini dari langitmu selamanya?', async () => {
+      await DB.del('memories', m.id);
+      URL.revokeObjectURL(m.url);
+      memories.splice(lbIndex, 1);
+      $('#lb').classList.remove('show'); $('#lbMedia').innerHTML = '';
+      renderAll();
+      toast('bintang dipadamkan', 'trash-2');
+    });
+  };
+
+  $('#qPrev').onclick = () => qGo(-1);
+  $('#qNext').onclick = () => qGo(1);
+  $('#qCard').addEventListener('mouseenter', () => qHover = true);
+  $('#qCard').addEventListener('mouseleave', () => qHover = false);
+  $('#qAdd').onclick = () => { $('#qTextIn').value = ''; $('#qSrcIn').value = ''; $('#mQuote').classList.add('show'); $('#qTextIn').focus(); };
+  $('#qSave').onclick = () => {
+    const t = $('#qTextIn').value.trim();
+    if(!t){ toast('tulis dulu isi sinyalnya', 'alert-circle'); return; }
+    quotes.push({ t, s: $('#qSrcIn').value.trim() });
+    saveQuotes(); qi = quotes.length - 1; renderQuote();
+    $('#mQuote').classList.remove('show');
+    toast('sinyal baru diterima', 'radio');
+  };
+  $('#qDel').onclick = () => {
+    if(!quotes.length) return;
+    confirmDialog('Putuskan sinyal ini selamanya?', () => {
+      quotes.splice(qi, 1);
+      if(qi >= quotes.length) qi = Math.max(0, quotes.length - 1);
+      saveQuotes(); renderQuote();
+      toast('sinyal diputus', 'trash-2');
+    });
+  };
+
+  $('#cfYes').onclick = () => { $('#mConfirm').classList.remove('show'); cfCb && cfCb(); cfCb = null; };
+  $('#cfNo').onclick  = () => { $('#mConfirm').classList.remove('show'); cfCb = null; };
+
+  $$('[data-close]').forEach(b => b.onclick = () => b.closest('.overlay').classList.remove('show'));
+  $$('.overlay').forEach(ov => ov.addEventListener('mousedown', e => {
+    if(e.target === ov && ov.id !== 'mConfirm') ov.classList.remove('show');
+  }));
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){
+      $$('.overlay.show').forEach(ov => ov.classList.remove('show'));
+      $('#lbMedia').innerHTML = '';
+    }
+    if($('#lb').classList.contains('show')){
+      if(e.key === 'ArrowLeft')  lbMove(-1);
+      if(e.key === 'ArrowRight') lbMove(1);
+    }
+  });
+
+  addEventListener('resize', () => { Sky.size(); scheduleConstellation(); });
+  setInterval(() => { if(!qHover && !document.hidden) qGo(1); }, 7000);
+}
+
+/* ═══════════════ lepas landas ═══════════════ */
+(async function init(){
+  /* event dipasang paling awal: apa pun yang terjadi di bawah, tombol tetap hidup */
+  try{ bindEvents(); }catch(e){ console.error('bindEvents gagal', e); }
+
+  try{
+    $('#heroDate').textContent = new Intl.DateTimeFormat('id-ID', { day:'numeric', month:'long', year:'numeric' }).format(new Date()).toUpperCase();
+  }catch(e){}
+  try{ Sky.init(); }catch(e){ console.warn('langit gagal', e); }
+
+  let dbOk = true;
+  try{ await DB.open(); }catch(e){ dbOk = false; console.warn('IndexedDB tidak tersedia', e); }
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+
+  try{
+    userTracks = (await DB.all('tracks')).map(t => ({ id: t.id, title: t.title, file: true }));
+  }catch(e){ userTracks = []; }
+
+  try{
+    memories = (await DB.all('memories')).map(m => {
+      const blob = m.data ? new Blob([m.data], { type: m.mime || '' }) : m.blob;
+      return { ...m, blob, url: URL.createObjectURL(blob) };
+    });
+  }catch(e){ console.warn('gagal memuat kenangan', e); memories = []; }
+  sortMemories();
+
+  loadQuotes();
+  renderQuote(true);
+  Player.buildList();
+  renderIntroTracks();
+  renderMasonry();
+  renderStats();
+
+  $$('.rv').forEach(el => io.observe(el));
+  refreshIcons();
+
+  if(!dbOk) toast('penyimpanan browser tidak tersedia — foto hanya sementara', 'alert-circle');
+})();
+</script>
+</body>
+</html>
